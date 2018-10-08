@@ -47,13 +47,21 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       G4GDMLParser parser;
       parser.SetOverlapCheck(fGDMLOverlapCheck);
       parser.Read(fGDMLFile, fGDMLValidate);
+      G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
+      if (fGDMLOverlapCheck) CheckOverlap(worldvolume);
       // Change directory back
       if (chdir(cwd)) {
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
         exit(-1);
       }
-      return parser.GetWorldVolume();
+      return worldvolume;
     };
+
+    void CheckOverlap(G4VPhysicalVolume* volume) {
+      volume->CheckOverlaps(1000, 0.0, false);
+      for (int i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
+        CheckOverlap(volume->GetLogicalVolume()->GetDaughter(i));
+    }
 
   private:
     G4bool fGDMLValidate;
@@ -67,7 +75,6 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       } else fGDMLPath = ".";
       fGDMLFile = gdmlfile.substr(i + 1);
     }
-
 };
 
 class PhysicsList: public G4VUserPhysicsList
