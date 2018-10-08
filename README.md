@@ -5,7 +5,11 @@ Simple gdml viewer based on the Geant4 libraries
 # Usage
 
 ```
-gdmlview [gdml file]
+Allowed options:
+  -h [ --help ]         Produce this help message
+  -g [ --gdmlfile ] arg top level gdml file
+  -v [ --validate ]     enable schema validation
+  -o [ --overlap ]      enable overlap check
 ```
 
 # Installation
