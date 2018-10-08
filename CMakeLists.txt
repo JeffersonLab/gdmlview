@@ -16,22 +16,24 @@ endif()
 # Find Geant4 package
 #
 find_package(Geant4 REQUIRED ui_all vis_all)
-
-#----------------------------------------------------------------------------
-# Setup Geant4 include directories and compile definitions
-#
 include(${Geant4_USE_FILE})
 
 #----------------------------------------------------------------------------
+# Find Boost libraries
+find_package(Boost COMPONENTS program_options)
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIR})
+
+#----------------------------------------------------------------------------
 # Debugging symbols, warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
 add_executable(gdmlview-bin gdmlview.cc)
 set_target_properties(gdmlview-bin PROPERTIES OUTPUT_NAME gdmlview)
-target_link_libraries(gdmlview-bin ${Geant4_LIBRARIES})
+target_link_libraries(gdmlview-bin ${Geant4_LIBRARIES} ${Boost_LIBRARIES})
 
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
