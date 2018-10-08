@@ -21,3 +21,8 @@ cmake ..
 make
 make install
 ```
+
+# Requirements
+
+* Geant4 with G4UIQt and GDML support
+* Boost program options
