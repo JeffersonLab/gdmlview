@@ -13,13 +13,14 @@
 
 #include <sys/param.h>
 
-class DetectorConstruction : public G4VUserDetectorConstruction
+class DetectorConstruction: public G4VUserDetectorConstruction
 {
   public:
     DetectorConstruction(const G4String& gdmlfile) { SetGDMLFile(gdmlfile); };
-    virtual ~DetectorConstruction() { };
 
     G4VPhysicalVolume* Construct() {
+      G4bool fGDMLValidate = true;
+      G4bool fGDMLOverlapCheck = true;
       // Change directory
       char cwd[MAXPATHLEN];
       if (!getcwd(cwd,MAXPATHLEN)) {
@@ -33,7 +34,8 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 
       // Parse GDML file
       G4GDMLParser parser;
-      parser.Read(fGDMLFile);
+      parser.SetOverlapCheck(fGDMLOverlapCheck);
+      parser.Read(fGDMLFile, fGDMLValidate);
       // Change directory back
       if (chdir(cwd)) {
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
@@ -55,25 +57,20 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 
 };
 
-class PhysicsList : public G4VUserPhysicsList
+class PhysicsList: public G4VUserPhysicsList
 {
-  public:
-    PhysicsList() { };
-    virtual ~PhysicsList() { };
   protected:
     void ConstructParticle() { };
     void ConstructProcess() { };
 };
 
-class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
+class PrimaryGeneratorAction: public G4VUserPrimaryGeneratorAction
 {
   public:
-    PrimaryGeneratorAction() { };
-    virtual ~PrimaryGeneratorAction() { };
     virtual void GeneratePrimaries(G4Event*) { };
 };
 
-namespace
+namespace gdmlview
 {
   void PrintUsage() {
     G4cerr << "Usage: " << G4endl;
@@ -87,7 +84,7 @@ int main(int argc, char** argv)
   G4String gdmlfile;
   if (argc > 0) gdmlfile = argv[1];
   else {
-    PrintUsage();
+    gdmlview::PrintUsage();
     return 1;
   }
 
