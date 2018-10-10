@@ -1,10 +1,6 @@
 #include "G4Types.hh"
 #include "G4Version.hh"
 
-#include "G4VUserDetectorConstruction.hh"
-#include "G4VUserPhysicsList.hh"
-#include "G4VUserPrimaryGeneratorAction.hh"
-
 #include "G4GDMLParser.hh"
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
@@ -19,76 +15,9 @@ using std::string;
 
 #include <sys/param.h>
 
-class DetectorConstruction: public G4VUserDetectorConstruction
-{
-  public:
-    DetectorConstruction(const G4String& gdmlfile, bool validate, bool overlap) {
-      fGDMLValidate = validate;
-      fGDMLOverlapCheck = overlap;
-      SetGDMLFile(gdmlfile);
-    };
-
-    G4VPhysicalVolume* Construct() {
-      G4cout << "Reading " << fGDMLFile << G4endl;
-      G4cout << "- schema validation " << (fGDMLValidate? "on": "off") << G4endl;
-      G4cout << "- overlap check " << (fGDMLOverlapCheck? "on": "off") << G4endl;
-      // Change directory
-      char cwd[MAXPATHLEN];
-      if (!getcwd(cwd,MAXPATHLEN)) {
-        G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR no current working directory" << G4endl;
-        exit(-1);
-      }
-      if (chdir(fGDMLPath)) {
-        G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
-        exit(-1);
-      }
-
-      // Parse GDML file
-      G4GDMLParser parser;
-      parser.SetOverlapCheck(fGDMLOverlapCheck);
-      parser.Read(fGDMLFile, fGDMLValidate);
-      G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
-      if (fGDMLOverlapCheck) CheckOverlap(worldvolume);
-      // Change directory back
-      if (chdir(cwd)) {
-        G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
-        exit(-1);
-      }
-      return worldvolume;
-    };
-
-    void CheckOverlap(G4VPhysicalVolume* volume) {
-      volume->CheckOverlaps(1000, 0.0, false);
-      for (int i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
-        CheckOverlap(volume->GetLogicalVolume()->GetDaughter(i));
-    }
-
-  private:
-    G4bool fGDMLValidate;
-    G4bool fGDMLOverlapCheck;
-    G4String fGDMLPath;
-    G4String fGDMLFile;
-    void SetGDMLFile(G4String gdmlfile) {
-      size_t i = gdmlfile.rfind('/');
-      if (i != std::string::npos) {
-        fGDMLPath = gdmlfile.substr(0,i);
-      } else fGDMLPath = ".";
-      fGDMLFile = gdmlfile.substr(i + 1);
-    }
-};
-
-class PhysicsList: public G4VUserPhysicsList
-{
-  protected:
-    void ConstructParticle() { };
-    void ConstructProcess() { };
-};
-
-class PrimaryGeneratorAction: public G4VUserPrimaryGeneratorAction
-{
-  public:
-    virtual void GeneratePrimaries(G4Event*) { };
-};
+#include "PhysicsList.hh"
+#include "DetectorConstruction.hh"
+#include "PrimaryGeneratorAction.hh"
 
 int main(int argc, char** argv)
 {

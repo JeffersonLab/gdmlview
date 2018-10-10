@@ -28,10 +28,13 @@ link_directories(${Boost_LIBRARY_DIR})
 # Debugging symbols, warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 
+include_directories(${PROJECT_SOURCE_DIR}/include)
+file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc)
+
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
-add_executable(gdmlview-bin gdmlview.cc)
+add_executable(gdmlview-bin gdmlview.cc ${sources})
 set_target_properties(gdmlview-bin PROPERTIES OUTPUT_NAME gdmlview)
 target_link_libraries(gdmlview-bin ${Geant4_LIBRARIES} ${Boost_LIBRARIES})
 
