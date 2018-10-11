@@ -24,6 +24,7 @@
 #include "G4VUserPrimaryGeneratorAction.hh"
 
 #include "G4GDMLParser.hh"
+#include "G4PVPlacement.hh"
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 #include "G4UIQt.hh"
@@ -40,7 +41,7 @@ using std::string;
 class DetectorConstruction: public G4VUserDetectorConstruction
 {
   public:
-    DetectorConstruction(const G4String& gdmlfile, bool validate, bool overlap, G4int res, G4double tol)
+    DetectorConstruction(const G4String& gdmlfile, bool validate, bool overlap, int res, double tol)
     : fGDMLValidate(validate),fGDMLOverlapCheck(overlap),fGDMLOverlapRes(res),fGDMLOverlapTol(tol)
     {
       SetGDMLFile(gdmlfile);
@@ -66,7 +67,10 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       parser.SetOverlapCheck(false); // do our own overlap check
       parser.Read(fGDMLFile, fGDMLValidate);
       G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
-      if (fGDMLOverlapCheck) CheckOverlap(worldvolume, fGDMLOverlapRes, fGDMLOverlapTol);
+      if (fGDMLOverlapCheck) {
+        CheckOverlap(worldvolume, fGDMLOverlapRes, fGDMLOverlapTol);
+        DrawOverlap();
+      }
       // Change directory back
       if (chdir(cwd)) {
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
@@ -77,11 +81,59 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       return worldvolume;
     };
 
+    void DrawOverlap() {
+      for (std::vector< std::tuple<G4VPhysicalVolume*, G4ThreeVector,G4double > >::const_iterator
+            it  = fOverlaps.begin(); it != fOverlaps.end(); it++) {
+        G4VPhysicalVolume* vol = std::get<0>(*it);
+        G4ThreeVector pos = std::get<1>(*it);
+        G4double r = std::get<2>(*it);
+        G4LogicalVolume* overlap_log =
+          new G4LogicalVolume(new G4Orb("overlap_solid",r),0,"overlap_log",0,0,0);
+        overlap_log->SetVisAttributes(G4VisAttributes(G4Colour::Yellow()));
+        new G4PVPlacement(0,pos,"overlap_phys",overlap_log,vol,false,0,false);
+      }
+    }
+
     void CheckOverlap(G4VPhysicalVolume* volume,
                       G4int res = 1000, G4double tol = 0.0,
                       G4bool verbose = true, G4int errMax = 1) {
-      if (volume->CheckOverlaps(res, tol, verbose, errMax) == true)
+      if (volume->CheckOverlaps(res, tol, verbose, errMax))
         volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour::Red()));
+
+      G4VSolid* solid = volume->GetLogicalVolume()->GetSolid();
+      G4LogicalVolume* motherLog = volume->GetMotherLogical();
+
+      if (motherLog) {
+
+        G4VSolid* motherSolid = motherLog->GetSolid();
+        G4AffineTransform Tm(volume->GetRotation(), volume->GetTranslation());
+        for (G4int n = 0; n < res; n++) {
+          G4ThreeVector point = solid->GetPointOnSurface();
+          G4ThreeVector mp = Tm.TransformPoint(point);
+          if (motherSolid->Inside(mp) == kOutside) {
+            G4double distin = motherSolid->DistanceToIn(mp);
+            if (distin > tol) {
+              fOverlaps.push_back(std::make_tuple(volume,point,10*distin));
+              break;
+            }
+          }
+          for (G4int i = 0; i < motherLog->GetNoDaughters(); i++) {
+            G4VPhysicalVolume* daughter = motherLog->GetDaughter(i);
+            if (daughter == volume) continue;
+            G4AffineTransform Td( daughter->GetRotation(), daughter->GetTranslation() );
+            G4ThreeVector md = Td.Inverse().TransformPoint(mp);
+            G4VSolid* daughterSolid = daughter->GetLogicalVolume()->GetSolid();
+            if (daughterSolid->Inside(md) == kInside) {
+              G4double distout = daughterSolid->DistanceToOut(md);
+              if (distout > tol) {
+                fOverlaps.push_back(std::make_tuple(daughter,md,10*distout));
+                break;
+              }
+            }
+          }
+        }
+      }
+
       for (int i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
         CheckOverlap(volume->GetLogicalVolume()->GetDaughter(i), res, tol, verbose, errMax);
     }
@@ -93,6 +145,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
     G4double fGDMLOverlapTol;
     G4String fGDMLPath;
     G4String fGDMLFile;
+    std::vector< std::tuple< G4VPhysicalVolume*, G4ThreeVector, G4double > > fOverlaps;
     void SetGDMLFile(G4String gdmlfile) {
       size_t i = gdmlfile.rfind('/');
       if (i != std::string::npos) {
@@ -175,6 +228,9 @@ int main(int argc, char** argv)
   ui->AddButton("views", "Left view (-X)",  "/vis/viewer/set/viewpointThetaPhi -90 180 deg");
   ui->AddButton("views", "Bottom view (+Y)","/vis/viewer/set/viewpointThetaPhi -90  90 deg");
   ui->AddButton("views", "Top view (-Y)",   "/vis/viewer/set/viewpointThetaPhi +90  90 deg");
+  ui->AddMenu("axes", "Axes");
+  ui->AddButton("axes", "Add axes", "/vis/scene/add/axes 0 0 0");
+  ui->AddButton("axes", "Hide axes", "/vis/scene/activateModel G4AxesModel false");
   ui->AddIcon("Front view (+Z)",  "user_icon", "/vis/viewer/set/viewpointThetaPhi 180   0 deg \n /vis/viewer/set/upVector 0 1 0", "TechDraw_ProjFront.xpm");
   ui->AddIcon("Rear view (-Z)",   "user_icon", "/vis/viewer/set/viewpointThetaPhi   0   0 deg \n /vis/viewer/set/upVector 0 1 0", "TechDraw_ProjRear.xpm");
   ui->AddIcon("Right view (+X)",  "user_icon", "/vis/viewer/set/viewpointThetaPhi +90 180 deg \n /vis/viewer/set/upVector 0 1 0", "TechDraw_ProjRight.xpm");
