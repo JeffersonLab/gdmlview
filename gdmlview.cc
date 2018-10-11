@@ -73,6 +73,8 @@ class DetectorConstruction: public G4VUserDetectorConstruction
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
         exit(-1);
       }
+      // Turn world volume visible
+      worldvolume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(true));
       return worldvolume;
     };
 
