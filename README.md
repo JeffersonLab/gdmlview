@@ -6,10 +6,12 @@ Simple gdml viewer based on the Geant4 libraries
 
 ```
 Allowed options:
-  -h [ --help ]         Produce this help message
-  -g [ --gdmlfile ] arg top level gdml file
-  -v [ --validate ]     enable schema validation
-  -o [ --overlap ]      enable overlap check
+  -h [ --help ]           Produce this help message
+  -g [ --gdmlfile ] arg   top level gdml file
+  -v [ --validate ]       enable schema validation
+  -o [ --overlap ]        enable overlap check
+  -t [ --tolerance ] arg  overlap tolerance in mm
+  -r [ --resolution ] arg overlap resolution as int
 ```
 
 # Installation
