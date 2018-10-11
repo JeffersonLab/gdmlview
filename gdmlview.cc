@@ -1,3 +1,21 @@
+/*
+    gdmlview uses the Geant4 parser and openGL viewer to show GDML files
+    Copyright (C) 2018  Wouter Deconinck
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include "G4Types.hh"
 #include "G4Version.hh"
 
@@ -116,6 +134,10 @@ int main(int argc, char** argv)
   po::notify(povm);
 
   if (povm.count("h") || gdmlfile.size() == 0) {
+    G4cout << "    gdmlview  Copyright (C) 2018  Wouter Deconinck" << G4endl;
+    G4cout << "This program comes with ABSOLUTELY NO WARRANTY; see LICENSE." << G4endl;
+    G4cout << "This is free software, and you are welcome to redistribute it" << G4endl;
+    G4cout << "under certain conditions; see LICENSE for details." << G4endl << G4endl;
     G4cout << desc << G4endl;
     return 1;
   }
