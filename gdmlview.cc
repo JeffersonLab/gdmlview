@@ -64,7 +64,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
 
       // Parse GDML file
       G4GDMLParser parser;
-      parser.SetOverlapCheck(fGDMLOverlapCheck);
+      parser.SetOverlapCheck(false); // do our own overlap check
       parser.Read(fGDMLFile, fGDMLValidate);
       G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
       if (fGDMLOverlapCheck) CheckOverlap(worldvolume, fGDMLOverlapTol);
