@@ -100,6 +100,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       if (volume->CheckOverlaps(res, tol, verbose, errMax))
         volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour::Red()));
 
+      G4int trials = 0;
       G4VSolid* solid = volume->GetLogicalVolume()->GetSolid();
       G4LogicalVolume* motherLog = volume->GetMotherLogical();
 
@@ -114,7 +115,10 @@ class DetectorConstruction: public G4VUserDetectorConstruction
             G4double distin = motherSolid->DistanceToIn(mp);
             if (distin > tol) {
               fOverlaps.push_back(std::make_tuple(volume,point,10*distin));
-              break;
+              if (verbose)
+                G4cout << "Overlap of " << volume->GetName() << " with mother " << motherLog->GetName()
+                       << " at " << point << " (" << distin/CLHEP::mm << " mm)" << G4endl;
+              if (++trials > errMax) break;
             }
           }
           for (G4int i = 0; i < motherLog->GetNoDaughters(); i++) {
@@ -127,7 +131,10 @@ class DetectorConstruction: public G4VUserDetectorConstruction
               G4double distout = daughterSolid->DistanceToOut(md);
               if (distout > tol) {
                 fOverlaps.push_back(std::make_tuple(daughter,md,10*distout));
-                break;
+                if (verbose)
+                  G4cout << "Overlap of " << volume->GetName() << " with sister " << daughter->GetName()
+                         << " at " << md << " (" << distout/CLHEP::mm << " mm)" << G4endl;
+                if (++trials > errMax) break;
               }
             }
           }
