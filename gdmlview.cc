@@ -41,23 +41,25 @@ using std::string;
 class DetectorConstruction: public G4VUserDetectorConstruction
 {
   public:
-    DetectorConstruction(const G4String& gdmlfile, bool validate, bool overlap, int res, double tol)
-    : fGDMLValidate(validate),fGDMLOverlapCheck(overlap),fGDMLOverlapRes(res),fGDMLOverlapTol(tol)
+    DetectorConstruction(const G4String& gdmlfile, bool validate, bool overlap, int res, double tol, bool verbose, int errmax)
+    : fValidate(validate),fOverlapCheck(overlap),
+      fOverlapRes(res),fOverlapTol(tol),
+      fVerbose(verbose),fErrMax(errmax)
     {
       SetGDMLFile(gdmlfile);
     };
 
     G4VPhysicalVolume* Construct() {
-      G4cout << "Reading " << fGDMLFile << G4endl;
-      G4cout << "- schema validation " << (fGDMLValidate? "on": "off") << G4endl;
-      G4cout << "- overlap check " << (fGDMLOverlapCheck? "on": "off") << G4endl;
+      G4cout << "Reading " << fFile << G4endl;
+      G4cout << "- schema validation " << (fValidate? "on": "off") << G4endl;
+      G4cout << "- overlap check " << (fOverlapCheck? "on": "off") << G4endl;
       // Change directory
       char cwd[MAXPATHLEN];
       if (!getcwd(cwd,MAXPATHLEN)) {
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR no current working directory" << G4endl;
         exit(-1);
       }
-      if (chdir(fGDMLPath)) {
+      if (chdir(fPath)) {
         G4cerr << __FILE__ << " line " << __LINE__ << ": ERROR cannot change directory" << G4endl;
         exit(-1);
       }
@@ -65,10 +67,10 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       // Parse GDML file
       G4GDMLParser parser;
       parser.SetOverlapCheck(false); // do our own overlap check
-      parser.Read(fGDMLFile, fGDMLValidate);
+      parser.Read(fFile, fValidate);
       G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
-      if (fGDMLOverlapCheck) {
-        CheckOverlap(worldvolume, fGDMLOverlapRes, fGDMLOverlapTol);
+      if (fOverlapCheck) {
+        CheckOverlap(worldvolume, fOverlapRes, fOverlapTol, fVerbose, fErrMax);
         DrawOverlap();
       }
       // Change directory back
@@ -146,19 +148,21 @@ class DetectorConstruction: public G4VUserDetectorConstruction
     }
 
   private:
-    G4bool fGDMLValidate;
-    G4bool fGDMLOverlapCheck;
-    G4int fGDMLOverlapRes;
-    G4double fGDMLOverlapTol;
-    G4String fGDMLPath;
-    G4String fGDMLFile;
+    G4bool fValidate;
+    G4bool fOverlapCheck;
+    G4int fOverlapRes;
+    G4double fOverlapTol;
+    G4bool fVerbose;
+    G4int fErrMax;
+    G4String fPath;
+    G4String fFile;
     std::vector< std::tuple< G4VPhysicalVolume*, G4ThreeVector, G4double > > fOverlaps;
     void SetGDMLFile(G4String gdmlfile) {
       size_t i = gdmlfile.rfind('/');
       if (i != std::string::npos) {
-        fGDMLPath = gdmlfile.substr(0,i);
-      } else fGDMLPath = ".";
-      fGDMLFile = gdmlfile.substr(i + 1);
+        fPath = gdmlfile.substr(0,i);
+      } else fPath = ".";
+      fFile = gdmlfile.substr(i + 1);
     }
 };
 
@@ -177,20 +181,24 @@ class PrimaryGeneratorAction: public G4VUserPrimaryGeneratorAction
 
 int main(int argc, char** argv)
 {
+  bool verbose = false;
   bool validate = false;
   bool overlap = false;
   int res = 1000;
+  int errmax = 1;
   double tol = 0.0;
   string gdmlfile;
 
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "Produce this help message")
+    ("verbose,v",  po::bool_switch(&verbose),    "enable verbose messages")
     ("gdmlfile,g", po::value<string>(&gdmlfile), "top level gdml file")
-    ("validate,v", po::bool_switch(&validate), "enable schema validation")
-    ("overlap,o",  po::bool_switch(&overlap),  "enable overlap check")
-    ("tolerance,t",  po::value<double>(&tol),  "overlap tolerance in mm")
-    ("resolution,r", po::value<int>(&res),     "overlap resolution as int")
+    ("schema,s",   po::bool_switch(&validate),   "enable schema validation")
+    ("overlap,o",  po::bool_switch(&overlap),    "enable overlap check")
+    ("tolerance,t",  po::value<double>(&tol),    "overlap tolerance in mm")
+    ("resolution,r", po::value<int>(&res),       "overlap resolution as int")
+    ("errmax,e",     po::value<int>(&errmax),    "overlap error max as int")
   ;
   po::positional_options_description p;
   p.add("gdmlfile", -1);
@@ -211,7 +219,7 @@ int main(int argc, char** argv)
 
   // Run manager
   G4RunManager* rm = new G4RunManager;
-  rm->SetUserInitialization(new DetectorConstruction(gdmlfile,validate,overlap,res,tol));
+  rm->SetUserInitialization(new DetectorConstruction(gdmlfile,validate,overlap,res,tol,verbose,errmax));
   rm->SetUserInitialization(new PhysicsList);
   rm->SetUserAction(new PrimaryGeneratorAction);
   rm->Initialize();
