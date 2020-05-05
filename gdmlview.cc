@@ -35,6 +35,7 @@ namespace po = boost::program_options;
 
 #include <string>
 using std::string;
+#include <algorithm>
 
 #include <sys/param.h>
 
@@ -69,6 +70,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       parser.SetOverlapCheck(false); // do our own overlap check
       parser.Read((fUseCwd ? fPath + "/" + fFile : fFile), fValidate);
       G4VPhysicalVolume* worldvolume = parser.GetWorldVolume();
+      AddTransparency(worldvolume,0.75);
       if (fOverlapCheck) {
         CheckOverlap(worldvolume, fOverlapRes, fOverlapTol, fVerbose, fErrMax);
         DrawOverlap();
@@ -83,6 +85,13 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       return worldvolume;
     };
 
+    double AddTransparency(G4VPhysicalVolume* volume, G4double alpha) {
+      G4double a = 1;
+      for (auto i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
+        a = std::min(a, AddTransparency(volume->GetLogicalVolume()->GetDaughter(i), alpha));
+      volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour(1,1,1,a)));
+      return a * alpha;
+    }
     void DrawOverlap() {
       for (std::vector< std::tuple<G4VPhysicalVolume*, G4ThreeVector,G4double > >::const_iterator
             it  = fOverlaps.begin(); it != fOverlaps.end(); it++) {
