@@ -81,7 +81,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
         exit(-1);
       }
       // Turn world volume visible
-      worldvolume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(true));
+      worldvolume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(true, G4Colour(1,1,1,0.1)));
       return worldvolume;
     };
 
