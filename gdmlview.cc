@@ -87,7 +87,8 @@ class DetectorConstruction: public G4VUserDetectorConstruction
 
     double AddTransparency(G4VPhysicalVolume* volume, G4double alpha) {
       G4double a = 1;
-      for (auto i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
+      auto n = volume->GetLogicalVolume()->GetNoDaughters();
+      for (decltype(n) i = 0; i < n; i++)
         a = std::min(a, AddTransparency(volume->GetLogicalVolume()->GetDaughter(i), alpha));
       volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour(1,1,1,a)));
       return a * alpha;
@@ -119,7 +120,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
 
         G4VSolid* motherSolid = motherLog->GetSolid();
         G4AffineTransform Tm(volume->GetRotation(), volume->GetTranslation());
-        for (G4int n = 0; n < res; n++) {
+        for (G4int ires = 0; ires < res; ires++) {
           G4ThreeVector point = solid->GetPointOnSurface();
           G4ThreeVector mp = Tm.TransformPoint(point);
           if (motherSolid->Inside(mp) == kOutside) {
@@ -132,7 +133,8 @@ class DetectorConstruction: public G4VUserDetectorConstruction
               if (++trials > errMax) break;
             }
           }
-          for (G4int i = 0; i < motherLog->GetNoDaughters(); i++) {
+          auto n = motherLog->GetNoDaughters();
+          for (decltype(n) i = 0; i < n; i++) {
             G4VPhysicalVolume* daughter = motherLog->GetDaughter(i);
             if (daughter == volume) continue;
             G4AffineTransform Td( daughter->GetRotation(), daughter->GetTranslation() );
@@ -152,7 +154,8 @@ class DetectorConstruction: public G4VUserDetectorConstruction
         }
       }
 
-      for (int i = 0; i < volume->GetLogicalVolume()->GetNoDaughters(); i++)
+      auto n = volume->GetLogicalVolume()->GetNoDaughters();
+      for (decltype(n) i = 0; i < n; i++)
         CheckOverlap(volume->GetLogicalVolume()->GetDaughter(i), res, tol, verbose, errMax);
     }
 
