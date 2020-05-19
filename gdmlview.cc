@@ -95,7 +95,8 @@ class DetectorConstruction: public G4VUserDetectorConstruction
         a = std::min(a, AddTransparency(volume->GetLogicalVolume()->GetDaughter(i), alpha));
       volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour(1,1,1,a)));
       return a * alpha;
-    }
+    };
+
     void DrawOverlap() {
       for (std::vector< std::tuple<G4VPhysicalVolume*, G4VSolid* > >::const_iterator
             it  = fOverlaps.begin(); it != fOverlaps.end(); it++) {
