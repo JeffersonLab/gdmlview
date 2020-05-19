@@ -30,6 +30,10 @@
 #include "G4UIQt.hh"
 #include "G4VisExecutive.hh"
 
+#include "G4ScaledSolid.hh"
+#include "G4SubtractionSolid.hh"
+#include "G4IntersectionSolid.hh"
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -93,15 +97,13 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       return a * alpha;
     }
     void DrawOverlap() {
-      for (std::vector< std::tuple<G4VPhysicalVolume*, G4ThreeVector,G4double > >::const_iterator
+      for (std::vector< std::tuple<G4VPhysicalVolume*, G4VSolid* > >::const_iterator
             it  = fOverlaps.begin(); it != fOverlaps.end(); it++) {
         G4VPhysicalVolume* vol = std::get<0>(*it);
-        G4ThreeVector pos = std::get<1>(*it);
-        G4double r = std::get<2>(*it);
-        G4LogicalVolume* overlap_log =
-          new G4LogicalVolume(new G4Orb("overlap_solid",r),0,"overlap_log",0,0,0);
-        overlap_log->SetVisAttributes(G4VisAttributes(G4Colour::Yellow()));
-        new G4PVPlacement(0,pos,"overlap_phys",overlap_log,vol,false,0,false);
+        G4VSolid* sol = std::get<1>(*it);
+        G4LogicalVolume* log = new G4LogicalVolume(sol,0,"overlap_log",0,0,0);
+        log->SetVisAttributes(G4VisAttributes(G4Colour::Yellow()));
+        new G4PVPlacement(0,G4ThreeVector(),"overlap_phys",log,vol,false,0,false);
       }
     }
 
@@ -109,7 +111,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
                       G4int res = 1000, G4double tol = 0.0,
                       G4bool verbose = true, G4int errMax = 1) {
       if (volume->CheckOverlaps(res, tol, verbose, errMax))
-        volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour::Red()));
+        volume->GetLogicalVolume()->SetVisAttributes(G4VisAttributes(G4Colour(1,0,0,0.5)));
 
       G4int trials = 0;
       G4VSolid* solid = volume->GetLogicalVolume()->GetSolid();
@@ -125,7 +127,13 @@ class DetectorConstruction: public G4VUserDetectorConstruction
           if (motherSolid->Inside(mp) == kOutside) {
             G4double distin = motherSolid->DistanceToIn(mp);
             if (distin > tol) {
-              fOverlaps.push_back(std::make_tuple(volume,point,10*distin));
+              G4AffineTransform tf1(volume->GetRotation(),volume->GetTranslation());
+              G4AffineTransform tf1i = tf1.Inverse();
+              G4RotationMatrix* rot = new G4RotationMatrix(tf1i.NetRotation());
+              G4ThreeVector trans = tf1i.NetTranslation();
+              G4SubtractionSolid* overlap_solid = new G4SubtractionSolid("overlap_solid", solid, motherSolid, rot, trans);
+              G4ScaledSolid* overlap_scaled_solid = new G4ScaledSolid("overlap_scaled_solid", overlap_solid, G4Scale3D(1.001, 1.001, 1.001));
+              fOverlaps.push_back(std::make_tuple(volume,overlap_scaled_solid));
               if (verbose)
                 G4cout << "Overlap of " << volume->GetName() << " with mother " << motherLog->GetName()
                        << " at " << point << " (" << distin/CLHEP::mm << " mm)" << G4endl;
@@ -141,7 +149,14 @@ class DetectorConstruction: public G4VUserDetectorConstruction
             if (daughterSolid->Inside(md) == kInside) {
               G4double distout = daughterSolid->DistanceToOut(md);
               if (distout > tol) {
-                fOverlaps.push_back(std::make_tuple(daughter,md,10*distout));
+                G4AffineTransform tf1(volume->GetRotation(),volume->GetTranslation());
+                G4AffineTransform tf2(daughter->GetRotation(),daughter->GetTranslation());
+                G4AffineTransform tf21 = tf2 * tf1.Inverse();
+                G4RotationMatrix* rot = new G4RotationMatrix(tf21.NetRotation());
+                G4ThreeVector trans = tf21.NetTranslation();
+                G4IntersectionSolid* overlap_solid = new G4IntersectionSolid("overlap_solid", solid, daughterSolid, rot, trans);
+                G4ScaledSolid* overlap_scaled_solid = new G4ScaledSolid("overlap_scaled_solid", overlap_solid, G4Scale3D(1.001, 1.001, 1.001));
+                fOverlaps.push_back(std::make_tuple(volume,overlap_scaled_solid));
                 if (verbose)
                   G4cout << "Overlap of " << volume->GetName() << " with sister " << daughter->GetName()
                          << " at " << md << " (" << distout/CLHEP::mm << " mm)" << G4endl;
@@ -166,7 +181,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
     G4int fErrMax;
     G4String fPath;
     G4String fFile;
-    std::vector< std::tuple< G4VPhysicalVolume*, G4ThreeVector, G4double > > fOverlaps;
+    std::vector< std::tuple< G4VPhysicalVolume*, G4VSolid* > > fOverlaps;
     void SetGDMLFile(G4String gdmlfile) {
       size_t i = gdmlfile.rfind('/');
       if (i != std::string::npos) {
