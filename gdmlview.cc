@@ -29,6 +29,7 @@
 #include "G4UImanager.hh"
 #include "G4UIQt.hh"
 #include "G4VisExecutive.hh"
+#include "G4UnitsTable.hh"
 
 #include "G4ScaledSolid.hh"
 #include "G4SubtractionSolid.hh"
@@ -51,6 +52,7 @@ class DetectorConstruction: public G4VUserDetectorConstruction
       fOverlapRes(res),fOverlapTol(tol),
       fVerbose(verbose),fErrMax(errmax)
     {
+      new G4UnitDefinition("inch","in","Length",25.4*CLHEP::millimeter);
       SetGDMLFile(gdmlfile);
     };
 
