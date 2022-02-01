@@ -276,6 +276,9 @@ int main(int argc, char** argv)
   ui->AddButton("views", "Left view (-X)",  "/vis/viewer/set/viewpointThetaPhi -90 180 deg");
   ui->AddButton("views", "Bottom view (+Y)","/vis/viewer/set/viewpointThetaPhi -90  90 deg");
   ui->AddButton("views", "Top view (-Y)",   "/vis/viewer/set/viewpointThetaPhi +90  90 deg");
+  ui->AddMenu("options", "Options");
+  ui->AddButton("options", "NbOfSides 24","/vis/viewer/set/lineSegmentsPerCircle 24");
+  ui->AddButton("options", "NbOfSides 360","/vis/viewer/set/lineSegmentsPerCircle 360");
   ui->AddMenu("axes", "Axes");
   ui->AddButton("axes", "Add axes", "/vis/scene/add/axes 0 0 0");
   ui->AddButton("axes", "Hide axes", "/vis/scene/activateModel G4AxesModel false");
