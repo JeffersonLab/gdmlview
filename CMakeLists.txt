@@ -20,9 +20,12 @@ include(${Geant4_USE_FILE})
 
 #----------------------------------------------------------------------------
 # Find Boost libraries
-find_package(Boost COMPONENTS program_options)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIR})
+set(Boost_USE_MULTITHREADED OFF)
+if (NOT Boost_FOUND)
+  find_package(Boost COMPONENTS program_options)
+  include_directories(${Boost_INCLUDE_DIRS})
+  link_directories(${Boost_LIBRARY_DIR})
+endif()
 
 #----------------------------------------------------------------------------
 # Debugging symbols, warnings
